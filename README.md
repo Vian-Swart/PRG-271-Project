@@ -35,7 +35,7 @@ It provides a menu-driven console interface layered on top of a background
 
 ## 2. How to Run
 
-Requires the .NET 8 SDK.
+Requires the .NET 10 SDK.
 
 ```bash
 cd FleetPulse
