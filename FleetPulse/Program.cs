@@ -34,6 +34,15 @@ namespace FleetPulse
     {
         private static readonly DispatchCenter Dispatch = new();
         private static readonly Random Rng = new();
+        private static readonly string[] PresetPlaces =
+        {
+            "Johannesburg",
+            "Pretoria",
+            "Durban",
+            "Cape Town",
+            "Bloemfontein",
+            "Polokwane"
+        };
         private const string SaveFilePath = "fleetpulse_state.json";
 
         public static void MenuHeader()
@@ -110,15 +119,14 @@ namespace FleetPulse
             Dispatch.AddDriver(new Driver("Thabo Nkosi", "C1-EL"));
             Dispatch.AddDriver(new Driver("Amanda van Wyk", "EC1"));
 
-            string[] places = { "Johannesburg", "Pretoria", "Durban", "Cape Town", "Bloemfontein", "Polokwane" };
             for (int i = 0; i < 3; i++)
             {
-                string origin = places[Rng.Next(places.Length)];
+                string origin = PresetPlaces[Rng.Next(PresetPlaces.Length)];
                 string dest;
                 do 
                 { 
 
-                    dest = places[Rng.Next(places.Length)];
+                    dest = PresetPlaces[Rng.Next(PresetPlaces.Length)];
 
                 } while (dest == origin);
 
@@ -506,27 +514,136 @@ namespace FleetPulse
 
         private static (string? success, string? error) CreateRouteFlow()
         {
-            Console.Write("Origin: ");
-            string origin = Console.ReadLine() ?? "Origin";
-            Console.Write("Destination: ");
-            string dest = Console.ReadLine() ?? "Destination";
+            string origin = PromptPlace("Select origin");
+            string dest = PromptPlace("Select destination", origin);
+
             Console.Write("Distance (km): ");
             double dist = double.Parse(Console.ReadLine() ?? "100");
-            Console.Write("Priority (0=Low, 1=Medium, 2=High, 3=Critical): ");
-            var priority = (Priority)int.Parse(Console.ReadLine() ?? "1");
+            var priority = PromptPriority();
 
             var route = Dispatch.CreateRoute(origin, dest, dist, priority);
             return ($"Created {route}\n", null);
         }
 
+        private static string PromptPlace(string prompt, string? excludedPlace = null)
+        {
+            while (true)
+            {
+                Console.WriteLine($"{prompt}:");
+                for (int i = 0; i < PresetPlaces.Length; i++)
+                {
+                    Console.WriteLine($"{i + 1}. {PresetPlaces[i]}");
+                }
+
+                Console.Write("Choose a place: ");
+                if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > PresetPlaces.Length)
+                {
+                    PrintError("Invalid option. Please choose a valid place number.");
+                    continue;
+                }
+
+                string selectedPlace = PresetPlaces[choice - 1];
+                if (excludedPlace != null && string.Equals(selectedPlace, excludedPlace, StringComparison.OrdinalIgnoreCase))
+                {
+                    PrintError("Destination cannot be the same as origin. Please choose a different place.");
+                    continue;
+                }
+
+                return selectedPlace;
+            }
+        }
+
+        private static Priority PromptPriority()
+        {
+            while (true)
+            {
+                Console.WriteLine("Select urgency:");
+                Console.WriteLine("1. Low");
+                Console.WriteLine("2. Medium");
+                Console.WriteLine("3. High");
+                Console.WriteLine("4. Critical");
+                Console.Write("Choose urgency: ");
+
+                if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > 4)
+                {
+                    PrintError("Invalid option. Please choose 1, 2, 3, or 4.");
+                    continue;
+                }
+
+                return (Priority)(choice - 1);
+            }
+        }
+
         private static (string? success, string? error) AssignRouteFlow()
         {
-            Console.Write("Route ID: ");
-            int routeId = int.Parse(Console.ReadLine() ?? "0");
-            Console.Write("Vehicle ID: ");
-            int vehicleId = int.Parse(Console.ReadLine() ?? "0");
-            Console.Write("Driver ID: ");
-            int driverId = int.Parse(Console.ReadLine() ?? "0");
+            var availableRoutes = Dispatch.Routes.Where(r => r.Status == RouteStatus.Pending).ToList();
+            if (availableRoutes.Count == 0)
+            {
+                return (null, "No pending routes available for assignment.\n");
+            }
+
+            var availableDrivers = Dispatch.Drivers.ToList();
+            if (availableDrivers.Count == 0)
+            {
+                return (null, "No drivers available for assignment.\n");
+            }
+
+            Console.WriteLine("--- Available Pending Routes ---");
+            foreach (var route in availableRoutes)
+            {
+                Console.WriteLine(route);
+            }
+
+            Console.WriteLine("\n--- Available Drivers ---");
+            foreach (var driver in availableDrivers)
+            {
+                Console.WriteLine(driver);
+            }
+
+            int routeId;
+            while (true)
+            {
+                Console.Write("\nRoute ID: ");
+                if (int.TryParse(Console.ReadLine(), out routeId))
+                {
+                    break;
+                }
+                PrintError("Invalid input. Please enter a valid numerical Route ID.");
+            }
+
+            int driverId;
+            while (true)
+            {
+                Console.Write("Driver ID: ");
+                if (int.TryParse(Console.ReadLine(), out driverId))
+                {
+                    break;
+                }
+                PrintError("Invalid input. Please enter a valid numerical Driver ID.");
+            }
+
+            var idleVehicles = Dispatch.Fleet.Where(v => v.Status == VehicleStatus.Idle).ToList();
+            if (idleVehicles.Count == 0)
+            {
+                return (null, "No idle vehicles available for assignment.\n");
+            }
+
+            Console.WriteLine("\n--- Available Idle Vehicles ---");
+            foreach (var vehicle in idleVehicles)
+            {
+                vehicle.DisplayInfo();
+            }
+
+            int vehicleId;
+            while (true)
+            {
+                Console.Write("Vehicle ID: ");
+                if (int.TryParse(Console.ReadLine(), out vehicleId))
+                {
+                    break;
+                }
+                PrintError("Invalid input. Please enter a valid numerical Vehicle ID.");
+            }
 
             Dispatch.AssignRoute(routeId, vehicleId, driverId);
             return ($"Route#{routeId} assigned to Vehicle#{vehicleId} / Driver#{driverId}.\n", null);

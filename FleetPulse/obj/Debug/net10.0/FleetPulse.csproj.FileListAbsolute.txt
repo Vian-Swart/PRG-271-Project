@@ -1,0 +1,15 @@
+/workspaces/PRG-271-Project/FleetPulse/bin/Debug/net10.0/FleetPulse
+/workspaces/PRG-271-Project/FleetPulse/bin/Debug/net10.0/FleetPulse.deps.json
+/workspaces/PRG-271-Project/FleetPulse/bin/Debug/net10.0/FleetPulse.runtimeconfig.json
+/workspaces/PRG-271-Project/FleetPulse/bin/Debug/net10.0/FleetPulse.dll
+/workspaces/PRG-271-Project/FleetPulse/bin/Debug/net10.0/FleetPulse.pdb
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/FleetPulse.GeneratedMSBuildEditorConfig.editorconfig
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/FleetPulse.AssemblyInfoInputs.cache
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/FleetPulse.AssemblyInfo.cs
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/FleetPulse.csproj.CoreCompileInputs.cache
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/FleetPulse.sourcelink.json
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/FleetPulse.dll
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/refint/FleetPulse.dll
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/FleetPulse.pdb
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/FleetPulse.genruntimeconfig.cache
+/workspaces/PRG-271-Project/FleetPulse/obj/Debug/net10.0/ref/FleetPulse.dll
