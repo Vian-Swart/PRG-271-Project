@@ -1,8 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "UVCWWHfbbXE=",
+  "dgSpecHash": "vJMwoa7OOa8=",
   "success": true,
-  "projectFilePath": "C:\\Users\\vian\\OneDrive - belgiumcampus.ac.za\\Year 2\\PRG271\\Project\\FleetPulse\\FleetPulse.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "/workspaces/PRG-271-Project/FleetPulse/FleetPulse.csproj",
+  "expectedPackageFiles": [
+    "/home/codespace/.nuget/packages/microsoft.netcore.app.ref/8.0.25/microsoft.netcore.app.ref.8.0.25.nupkg.sha512",
+    "/home/codespace/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.25/microsoft.aspnetcore.app.ref.8.0.25.nupkg.sha512",
+    "/home/codespace/.nuget/packages/microsoft.netcore.app.host.linux-x64/8.0.25/microsoft.netcore.app.host.linux-x64.8.0.25.nupkg.sha512"
+  ],
   "logs": []
 }
