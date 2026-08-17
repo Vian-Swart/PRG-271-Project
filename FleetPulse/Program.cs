@@ -64,7 +64,8 @@ namespace FleetPulse
             RunMenu(startupMsg);
 
             Dispatch.StopMonitoring();
-            Console.WriteLine("Shutting down FleetPulse. Goodbye!");
+            Console.Clear();
+            PrintSuccess("Shutting down FleetPulse. Goodbye!");
         }
 
         // ---------------- Console Helper Methods ----------------
