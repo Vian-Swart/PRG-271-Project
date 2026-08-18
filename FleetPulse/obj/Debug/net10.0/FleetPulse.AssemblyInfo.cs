@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FleetPulse")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+20f34e8f7595730a7f3c266c3d02b06c97de95e7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+55f9c76daf283ac3dece9ce67112dc7201444aff")]
 [assembly: System.Reflection.AssemblyProductAttribute("FleetPulse")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FleetPulse")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
