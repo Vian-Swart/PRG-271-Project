@@ -57,27 +57,37 @@ A typical first session:
 
 ## 3. Project Structure
 
-```
-FleetPulse/
-├── Program.cs                  entry point + menu
-├── Models/
-│   ├── Vehicle.cs               abstract base (abstraction, encapsulation)
-│   ├── Truck.cs / Van.cs / Bus.cs   concrete subtypes (inheritance, polymorphism)
-│   ├── Driver.cs
-│   ├── RouteJob.cs
-│   └── Enums.cs                 VehicleStatus, RouteStatus, Priority
-├── Interfaces/
-│   ├── ITrackable.cs            location behaviour contract
-│   └── IMaintainable.cs         service/maintenance behaviour contract
-├── Exceptions/
-│   ├── FleetCapacityExceededException.cs
-│   ├── InvalidRouteAssignmentException.cs
-│   └── DriverHourLimitExceededException.cs
-└── Services/
-    ├── DispatchCenter.cs        orchestrator: events, delegates, threading, rules
-    ├── FileManager.cs           bonus: JSON save/load of fleet state
-    └── ReportService.cs         bonus: LINQ-based reporting
-```
+The project is organized into clear, logical namespaces to separate data models, services, and user interface components:
+
+*   **`Enums/`**: Enumerations for strict typing.
+    *   `MainMenuOptions.cs`
+    *   `VehicleTypeOption.cs`
+*   **`Exceptions/`**: Custom exceptions enforcing strict business rules.
+    *   `DriverHourLimitExceededException.cs`: Thrown when a driver exceeds maximum allowable working hours.
+    *   `FleetCapacityExceededException.cs`: Thrown when fleet storage or capacity limits are reached.
+    *   `InvalidRouteAssignmentException.cs`: Thrown for invalid job assignments.
+*   **`Interfaces/`**: Defines contracts to ensure standardized behavior.
+    *   `IMaintainable.cs`: Contract for entities requiring maintenance.
+    *   `ITrackable.cs`: Contract for entities that can be tracked on a route.
+*   **`Models/`**: Contains the core business entities representing the fleet.
+    *   `Vehicle.cs` (Base class) with inherited classes: `Bus.cs`, `Truck.cs`, `Van.cs`
+    *   `Driver.cs`
+    *   `RouteJob.cs`
+    *   `MaintenanceRecord.cs`
+*   **`Services/`**: Contains the core business logic and background tasks.
+    *   `DispatchCenter.cs`: Manages vehicle dispatching and real-time background monitoring.
+    *   `FileManager.cs`: Handles data persistence (saving/loading fleet data).
+    *   `ReportService.cs`: Generates operational reports.
+*   **`UI/`**
+    *   Handles all console interactions and rendering.
+    *   `DriverUI.cs`: Interface screens for driver management.
+    *   `MenuRender.cs`: Core menu drawing and navigation logic.
+    *   `RouteUI.cs`: Interface screens for route assignments.
+    *   `VehicleUI.cs`: Interface screens for vehicle management.
+*   **Root Files**
+    *   `Program.cs`: The main entry point. Initializes the application and controls the background monitoring threads.
+    *   `fleetpulse_state.json`: The local data store utilized by `FileManager.cs` to persist fleet data between sessions.
+    *   `dotnet-install.sh`: Environment setup script.
 
 ## 4. Key Design Decisions
 
