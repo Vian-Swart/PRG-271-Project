@@ -57,7 +57,6 @@ A typical first session:
 
 ## 3. Project Structure
 
-```
 The project is organized into clear, logical namespaces to separate data models, services, and user interface components:
 
 *   **`Enums/`**: Enumerations for strict typing.
@@ -89,7 +88,6 @@ The project is organized into clear, logical namespaces to separate data models,
     *   `Program.cs`: The main entry point. Initializes the application and controls the background monitoring threads.
     *   `fleetpulse_state.json`: The local data store utilized by `FileManager.cs` to persist fleet data between sessions.
     *   `dotnet-install.sh`: Environment setup script.
-```
 
 ## 4. Key Design Decisions
 
