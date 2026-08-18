@@ -46,7 +46,6 @@ namespace FleetPulse
         };
         private const string SaveFilePath = "fleetpulse_state.json";
 
-        // FIX 1: Use a thread-safe queue to hold logs so they don't print while the user is typing
         private static readonly ConcurrentQueue<(ConsoleColor color, string tag, string message)> EventLogs = new();
 
         public static void MenuHeader()
@@ -54,6 +53,8 @@ namespace FleetPulse
             Console.WriteLine("=========================================");
             Console.WriteLine("   FleetPulse - Smart Fleet Dispatch     ");
             Console.WriteLine("=========================================\n");
+            
+            FlushLogs(); 
         }
 
         public static void Main(string[] args)
@@ -107,7 +108,6 @@ namespace FleetPulse
 
         private static void LogEvent(ConsoleColor color, string tag, string message)
         {
-            // Instead of printing immediately, enqueue it.
             EventLogs.Enqueue((color, tag, message));
         }
 
@@ -125,7 +125,7 @@ namespace FleetPulse
 
             if (hasLogs)
             {
-                Console.WriteLine(); // Add spacing after logs
+                Console.WriteLine(); 
             }
         }
 
@@ -163,9 +163,6 @@ namespace FleetPulse
             while (running)
             {
                 Console.Clear();
-                
-                // Flush background logs before drawing the menu so they appear at the top cleanly
-                FlushLogs();
                 
                 PrintMenu(currentMsg, errorMsg);
                 currentMsg = null;
@@ -338,33 +335,38 @@ namespace FleetPulse
                 if (localError != null) PrintError(localError);
 
                 Console.WriteLine("Select Vehicle Type:");
+                Console.WriteLine("0. Cancel");
                 Console.WriteLine($"{(int)VehicleTypeOption.Truck}. Truck");
                 Console.WriteLine($"{(int)VehicleTypeOption.Van}. Van");
                 Console.WriteLine($"{(int)VehicleTypeOption.Bus}. Bus");
                 Console.Write("Choose an option: ");
                 
                 string choice = (Console.ReadLine() ?? "").Trim();
+                if (choice == "0") return (null, null);
 
-                if (Enum.TryParse(choice, out vehicleType) && Enum.IsDefined(vehicleType))
+                if (Enum.TryParse(choice, out vehicleType) && Enum.IsDefined(vehicleType) && choice != "0")
                 {
                     break;
                 }
-                localError = "Invalid option. Please enter 1, 2, or 3.";
+                localError = "Invalid option. Please enter 0, 1, 2, or 3.";
             }
 
             string plate;
             while (true)
             {
-                Console.Write("License plate: ");
+                Console.Write("License plate [0 to cancel]: ");
                 plate = (Console.ReadLine() ?? "").Trim();
+                
+                if (plate == "0") return (null, null);
+                
                 if (!string.IsNullOrWhiteSpace(plate))
                 {
                     break;
                 }
-                PrintError("License plate cannot be empty. Please enter a valid license plate.");
+                PrintError("License plate cannot be empty.");
             }
 
-            Vehicle vehicle = vehicleType switch
+            Vehicle? vehicle = vehicleType switch
             {
                 VehicleTypeOption.Truck => PromptTruck(plate),
                 VehicleTypeOption.Van => PromptVan(plate),
@@ -372,51 +374,62 @@ namespace FleetPulse
                 _ => throw new InvalidOperationException("Unexpected vehicle type.")
             };
 
+            if (vehicle == null) return (null, null);
+
             Dispatch.AddVehicle(vehicle);
             return ($"Added {vehicle.GetType().Name} #{vehicle.VehicleId}.\n", null);
         }
 
-        private static Truck PromptTruck(string plate)
+        private static Truck? PromptTruck(string plate)
         {
             double load;
             while (true)
             {
-                Console.Write("Max load (kg): ");
-                if (double.TryParse(Console.ReadLine(), out load) && load > 0)
+                Console.Write("Max load (kg) [0 to cancel]: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return null;
+
+                if (double.TryParse(input, out load) && load > 0)
                 {
                     break;
                 }
-                PrintError("Invalid input. Please enter a valid, positive number for max load.");
+                PrintError("Invalid input. Please enter a valid, positive number.");
             }
             return new Truck(plate, load);
         }
 
-        private static Van PromptVan(string plate)
+        private static Van? PromptVan(string plate)
         {
             int cap;
             while (true)
             {
-                Console.Write("Package capacity: ");
-                if (int.TryParse(Console.ReadLine(), out cap) && cap > 0)
+                Console.Write("Package capacity [0 to cancel]: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return null;
+
+                if (int.TryParse(input, out cap) && cap > 0)
                 {
                     break;
                 }
-                PrintError("Invalid input. Please enter a valid, positive number for package capacity.");
+                PrintError("Invalid input. Please enter a valid, positive number.");
             }
             return new Van(plate, cap);
         }
 
-        private static Bus PromptBus(string plate)
+        private static Bus? PromptBus(string plate)
         {
             int cap;
             while (true)
             {
-                Console.Write("Passenger capacity: ");
-                if (int.TryParse(Console.ReadLine(), out cap) && cap > 0)
+                Console.Write("Passenger capacity [0 to cancel]: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return null;
+
+                if (int.TryParse(input, out cap) && cap > 0)
                 {
                     break;
                 }
-                PrintError("Invalid input. Please enter a valid, positive number for passenger capacity.");
+                PrintError("Invalid input. Please enter a valid, positive number.");
             }
             return new Bus(plate, cap);
         }
@@ -434,18 +447,20 @@ namespace FleetPulse
                 if (localError != null) PrintError(localError);
 
                 Console.WriteLine("Select Vehicle Type to remove:");
+                Console.WriteLine("0. Cancel");
                 Console.WriteLine($"{(int)VehicleTypeOption.Truck}. Truck");
                 Console.WriteLine($"{(int)VehicleTypeOption.Van}. Van");
                 Console.WriteLine($"{(int)VehicleTypeOption.Bus}. Bus");
                 Console.Write("Choose an option: ");
                 
                 string choice = (Console.ReadLine() ?? "").Trim();
+                if (choice == "0") return (null, null);
 
-                if (Enum.TryParse(choice, out vehicleType) && Enum.IsDefined(vehicleType))
+                if (Enum.TryParse(choice, out vehicleType) && Enum.IsDefined(vehicleType) && choice != "0")
                 {
                     break;
                 }
-                localError = "Invalid option. Please enter 1, 2, or 3.";
+                localError = "Invalid option. Please enter 0, 1, 2, or 3.";
             }
 
             var typeMatchedVehicles = Dispatch.Fleet.Where(v => vehicleType switch
@@ -471,8 +486,11 @@ namespace FleetPulse
             int id;
             while (true)
             {
-                Console.Write("Vehicle ID to remove: ");
-                if (int.TryParse(Console.ReadLine(), out id))
+                Console.Write("Vehicle ID to remove [0 to cancel]: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return (null, null);
+
+                if (int.TryParse(input, out id))
                 {
                     break;
                 }
@@ -492,10 +510,15 @@ namespace FleetPulse
 
         private static (string? success, string? error) AddDriverFlow()
         {
-            Console.Write("Driver name: ");
-            string name = Console.ReadLine() ?? "Unnamed";
-            Console.Write("License code: ");
-            string code = Console.ReadLine() ?? "N/A";
+            Console.Write("Driver name [0 to cancel]: ");
+            string name = (Console.ReadLine() ?? "").Trim();
+            if (name == "0") return (null, null);
+            if (string.IsNullOrWhiteSpace(name)) name = "Unnamed";
+
+            Console.Write("License code [0 to cancel]: ");
+            string code = (Console.ReadLine() ?? "").Trim();
+            if (code == "0") return (null, null);
+            if (string.IsNullOrWhiteSpace(code)) code = "N/A";
 
             var d = new Driver(name, code);
             Dispatch.AddDriver(d);
@@ -504,29 +527,34 @@ namespace FleetPulse
 
         private static (string? success, string? error) CreateRouteFlow()
         {
-            string origin = PromptPlace("Select origin");
-            string dest = PromptPlace("Select destination", origin);
+            string? origin = PromptPlace("Select origin");
+            if (origin == null) return (null, null);
 
-            // FIX 3: Replaced hardcoded default with proper validation loop
+            string? dest = PromptPlace("Select destination", origin);
+            if (dest == null) return (null, null);
+
             double dist;
             while (true)
             {
-                Console.Write("Distance (km): ");
-                if (double.TryParse(Console.ReadLine(), out dist) && dist > 0)
+                Console.Write("Distance in km [0 to cancel]: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return (null, null);
+
+                if (double.TryParse(input, out dist) && dist > 0)
                 {
                     break;
                 }
-                PrintError("Invalid input. Please enter a valid, positive number for distance.");
+                PrintError("Invalid input. Please enter a valid, positive number.");
             }
 
             var priority = PromptPriority();
+            if (priority == null) return (null, null);
 
-            var route = Dispatch.CreateRoute(origin, dest, dist, priority);
+            var route = Dispatch.CreateRoute(origin, dest, dist, priority.Value);
             return ($"Created {route}\n", null);
         }
 
-        // FIX 2: Clear screen on bad inputs to avoid infinite terminal scrolling
-        private static string PromptPlace(string prompt, string? excludedPlace = null)
+        private static string? PromptPlace(string prompt, string? excludedPlace = null)
         {
             string? localError = null;
             while (true)
@@ -537,13 +565,18 @@ namespace FleetPulse
                 if (localError != null) PrintError(localError);
 
                 Console.WriteLine($"{prompt}:");
+                Console.WriteLine("0. Cancel");
                 for (int i = 0; i < PresetPlaces.Length; i++)
                 {
                     Console.WriteLine($"{i + 1}. {PresetPlaces[i]}");
                 }
 
-                Console.Write("Choose a place: ");
-                if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > PresetPlaces.Length)
+                Console.Write("Choose an option: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                
+                if (input == "0") return null;
+
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > PresetPlaces.Length)
                 {
                     localError = "Invalid option. Please choose a valid place number.";
                     continue;
@@ -560,7 +593,7 @@ namespace FleetPulse
             }
         }
 
-        private static Priority PromptPriority()
+        private static Priority? PromptPriority()
         {
             string? localError = null;
             while (true)
@@ -571,13 +604,17 @@ namespace FleetPulse
                 if (localError != null) PrintError(localError);
 
                 Console.WriteLine("Select urgency:");
+                Console.WriteLine("0. Cancel");
                 Console.WriteLine("1. Low");
                 Console.WriteLine("2. Medium");
                 Console.WriteLine("3. High");
                 Console.WriteLine("4. Critical");
                 Console.Write("Choose urgency: ");
 
-                if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > 4)
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return null;
+
+                if (!int.TryParse(input, out int choice) || choice < 1 || choice > 4)
                 {
                     localError = "Invalid option. Please choose 1, 2, 3, or 4.";
                     continue;
@@ -616,8 +653,11 @@ namespace FleetPulse
             int routeId;
             while (true)
             {
-                Console.Write("\nRoute ID: ");
-                if (int.TryParse(Console.ReadLine(), out routeId))
+                Console.Write("\nRoute ID [0 to cancel]: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return (null, null);
+
+                if (int.TryParse(input, out routeId))
                 {
                     break;
                 }
@@ -627,8 +667,11 @@ namespace FleetPulse
             int driverId;
             while (true)
             {
-                Console.Write("Driver ID: ");
-                if (int.TryParse(Console.ReadLine(), out driverId))
+                Console.Write("Driver ID [0 to cancel]: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return (null, null);
+
+                if (int.TryParse(input, out driverId))
                 {
                     break;
                 }
@@ -650,8 +693,11 @@ namespace FleetPulse
             int vehicleId;
             while (true)
             {
-                Console.Write("Vehicle ID: ");
-                if (int.TryParse(Console.ReadLine(), out vehicleId))
+                Console.Write("Vehicle ID [0 to cancel]: ");
+                string input = (Console.ReadLine() ?? "").Trim();
+                if (input == "0") return (null, null);
+
+                if (int.TryParse(input, out vehicleId))
                 {
                     break;
                 }
