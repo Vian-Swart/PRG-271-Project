@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Concurrent;
 using FleetPulse.Exceptions;
 using FleetPulse.Models;
 using FleetPulse.Services;
@@ -45,12 +46,14 @@ namespace FleetPulse
         };
         private const string SaveFilePath = "fleetpulse_state.json";
 
+        // FIX 1: Use a thread-safe queue to hold logs so they don't print while the user is typing
+        private static readonly ConcurrentQueue<(ConsoleColor color, string tag, string message)> EventLogs = new();
+
         public static void MenuHeader()
         {
             Console.WriteLine("=========================================");
             Console.WriteLine("   FleetPulse - Smart Fleet Dispatch     ");
             Console.WriteLine("=========================================\n");
-
         }
 
         public static void Main(string[] args)
@@ -59,7 +62,6 @@ namespace FleetPulse
             SeedRandomData();
             Dispatch.StartMonitoring();
 
-            // Store the startup message to pass to the menu
             string startupMsg = "Background monitoring started (fuel, breakdowns, maintenance, auto-deliveries).\n";
             RunMenu(startupMsg);
 
@@ -89,7 +91,7 @@ namespace FleetPulse
         private static void WaitForKey()
         {
             Console.WriteLine("\nPress any key to continue...");
-            Console.ReadKey(true); // 'true' hides the pressed key character
+            Console.ReadKey(true);
             Console.Clear();
         }
 
@@ -105,10 +107,26 @@ namespace FleetPulse
 
         private static void LogEvent(ConsoleColor color, string tag, string message)
         {
-            var prev = Console.ForegroundColor;
-            Console.ForegroundColor = color;
-            Console.WriteLine($"\n[{DateTime.Now:HH:mm:ss}] [{tag}] {message}");
-            Console.ForegroundColor = prev;
+            // Instead of printing immediately, enqueue it.
+            EventLogs.Enqueue((color, tag, message));
+        }
+
+        private static void FlushLogs()
+        {
+            bool hasLogs = false;
+            while (EventLogs.TryDequeue(out var log))
+            {
+                var prev = Console.ForegroundColor;
+                Console.ForegroundColor = log.color;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [{log.tag}] {log.message}");
+                Console.ForegroundColor = prev;
+                hasLogs = true;
+            }
+
+            if (hasLogs)
+            {
+                Console.WriteLine(); // Add spacing after logs
+            }
         }
 
         private static void SeedRandomData()
@@ -124,11 +142,9 @@ namespace FleetPulse
             {
                 string origin = PresetPlaces[Rng.Next(PresetPlaces.Length)];
                 string dest;
-                do 
-                { 
-
+                do
+                {
                     dest = PresetPlaces[Rng.Next(PresetPlaces.Length)];
-
                 } while (dest == origin);
 
                 var priority = (Priority)Rng.Next(0, 4);
@@ -146,8 +162,13 @@ namespace FleetPulse
 
             while (running)
             {
+                Console.Clear();
+                
+                // Flush background logs before drawing the menu so they appear at the top cleanly
+                FlushLogs();
+                
                 PrintMenu(currentMsg, errorMsg);
-                currentMsg = null; // Clear it so the message only shows on the very first run
+                currentMsg = null;
                 errorMsg = null;
 
                 string? choice = Console.ReadLine();
@@ -156,7 +177,6 @@ namespace FleetPulse
                 {
                     if (Enum.TryParse(choice, out MainMenuOption menuOption) && Enum.IsDefined(menuOption))
                     {
-                        // Clear console and show header for all options except Exit
                         if (menuOption != MainMenuOption.Exit)
                         {
                             Console.Clear();
@@ -165,114 +185,75 @@ namespace FleetPulse
 
                         switch (menuOption)
                         {
-                            case MainMenuOption.ViewFleet: 
-                                ViewFleet(); 
+                            case MainMenuOption.ViewFleet:
+                                ViewFleet();
                                 break;
-
-                            case MainMenuOption.AddVehicle: 
-                                (currentMsg, errorMsg) = AddVehicleFlow(); 
-                                Console.Clear();
+                            case MainMenuOption.AddVehicle:
+                                (currentMsg, errorMsg) = AddVehicleFlow();
                                 break;
-
-                            case MainMenuOption.RemoveVehicle: 
-                                (currentMsg, errorMsg) = RemoveVehicleFlow(); 
-                                Console.Clear();
+                            case MainMenuOption.RemoveVehicle:
+                                (currentMsg, errorMsg) = RemoveVehicleFlow();
                                 break;
-
-                            case MainMenuOption.AddDriver: 
-                                (currentMsg, errorMsg) = AddDriverFlow(); 
-                                Console.Clear();
+                            case MainMenuOption.AddDriver:
+                                (currentMsg, errorMsg) = AddDriverFlow();
                                 break;
-
-                            case MainMenuOption.CreateRoute: 
-                                (currentMsg, errorMsg) = CreateRouteFlow(); 
-                                Console.Clear();
+                            case MainMenuOption.CreateRoute:
+                                (currentMsg, errorMsg) = CreateRouteFlow();
                                 break;
-
-                            case MainMenuOption.AssignRoute: 
-                                (currentMsg, errorMsg) = AssignRouteFlow(); 
-                                Console.Clear();
+                            case MainMenuOption.AssignRoute:
+                                (currentMsg, errorMsg) = AssignRouteFlow();
                                 break;
-
-                            case MainMenuOption.ViewRoutes: 
-                                ViewRoutes(); 
+                            case MainMenuOption.ViewRoutes:
+                                ViewRoutes();
                                 break;
-
-                            case MainMenuOption.ViewReports: 
-                                ViewReports(); 
+                            case MainMenuOption.ViewReports:
+                                ViewReports();
                                 break;
-
-                            case MainMenuOption.SaveState: 
-                                (currentMsg, errorMsg) = SaveStateFlow(); 
-                                Console.Clear();
+                            case MainMenuOption.SaveState:
+                                (currentMsg, errorMsg) = SaveStateFlow();
                                 break;
-
-                            case MainMenuOption.LoadState: 
-                                (currentMsg, errorMsg) = LoadStateFlow(); 
-                                Console.Clear();
+                            case MainMenuOption.LoadState:
+                                (currentMsg, errorMsg) = LoadStateFlow();
                                 break;
-
-                            case MainMenuOption.ToggleMonitoring: 
-                                (currentMsg, errorMsg) = ToggleMonitoring(); 
-                                Console.Clear();
+                            case MainMenuOption.ToggleMonitoring:
+                                (currentMsg, errorMsg) = ToggleMonitoring();
                                 break;
-
-                            case MainMenuOption.ViewDrivers: 
-                                ViewDrivers(); 
+                            case MainMenuOption.ViewDrivers:
+                                ViewDrivers();
                                 break;
-
-                            case MainMenuOption.Exit: 
-                                running = false; 
-                                break;
-
-                            default:
+                            case MainMenuOption.Exit:
+                                running = false;
                                 break;
                         }
                     }
                     else
                     {
                         errorMsg = "Invalid option, please choose again.\n";
-                        Console.Clear();
                     }
                 }
                 catch (FleetCapacityExceededException ex)
                 {
                     errorMsg = $"[Capacity Error] {ex.Message}\n";
-                    Console.Clear();
                 }
                 catch (DriverHourLimitExceededException ex)
                 {
                     errorMsg = $"[Driver Hours Error] {ex.Message}\n";
-                    Console.Clear();
                 }
                 catch (InvalidRouteAssignmentException ex)
                 {
                     errorMsg = $"[Assignment Error] {ex.Message}\n";
-                    Console.Clear();
                 }
                 catch (FileNotFoundException ex)
                 {
                     errorMsg = $"[File Error] {ex.Message}\n";
-                    Console.Clear();
                 }
                 catch (FormatException)
                 {
                     errorMsg = "[Input Error] Please enter a valid number where a number is expected.\n";
-                    Console.Clear();
                 }
                 catch (Exception ex)
                 {
-                    // Last line of defence so a single bad action never crashes the whole console app.
                     errorMsg = $"[Unexpected Error] {ex.Message}\n";
-                    Console.Clear();
-                }
-                finally
-                {
-                    // Adding spacing unless we're about to clear the console for a menu render
-                    if (string.IsNullOrEmpty(currentMsg) && string.IsNullOrEmpty(errorMsg))
-                    {
-                        Console.WriteLine();
-                    }
                 }
             }
         }
@@ -281,13 +262,11 @@ namespace FleetPulse
         {
             MenuHeader();
 
-            // Print the startup message or returned success messages in green
             if (!string.IsNullOrEmpty(successMsg))
             {
                 PrintSuccess(successMsg);
             }
-            
-            // Print top-level returning errors in red
+
             if (!string.IsNullOrEmpty(errorMsg))
             {
                 PrintError(errorMsg);
@@ -316,9 +295,9 @@ namespace FleetPulse
         private static void ViewFleet()
         {
             var fleet = Dispatch.Fleet;
-            if (fleet.Count == 0) 
-            { 
-                Console.WriteLine("Fleet is empty."); 
+            if (fleet.Count == 0)
+            {
+                Console.WriteLine("Fleet is empty.");
             }
             else
             {
@@ -334,11 +313,11 @@ namespace FleetPulse
         private static void ViewDrivers()
         {
             var drivers = Dispatch.Drivers;
-            if (drivers.Count == 0) 
-            { 
-                Console.WriteLine("No drivers on record."); 
+            if (drivers.Count == 0)
+            {
+                Console.WriteLine("No drivers on record.");
             }
-            else 
+            else
             {
                 foreach (var d in drivers) Console.WriteLine(d);
             }
@@ -348,22 +327,29 @@ namespace FleetPulse
 
         private static (string? success, string? error) AddVehicleFlow()
         {
-            Console.WriteLine("Select Vehicle Type:");
-            Console.WriteLine($"{(int)VehicleTypeOption.Truck}. Truck");
-            Console.WriteLine($"{(int)VehicleTypeOption.Van}. Van");
-            Console.WriteLine($"{(int)VehicleTypeOption.Bus}. Bus");
-            
+            string? localError = null;
             VehicleTypeOption vehicleType;
+            
             while (true)
             {
-                Console.Write("Choose an option: ");
-                string choice = (Console.ReadLine() ?? "").Trim();
+                Console.Clear();
+                MenuHeader();
                 
+                if (localError != null) PrintError(localError);
+
+                Console.WriteLine("Select Vehicle Type:");
+                Console.WriteLine($"{(int)VehicleTypeOption.Truck}. Truck");
+                Console.WriteLine($"{(int)VehicleTypeOption.Van}. Van");
+                Console.WriteLine($"{(int)VehicleTypeOption.Bus}. Bus");
+                Console.Write("Choose an option: ");
+                
+                string choice = (Console.ReadLine() ?? "").Trim();
+
                 if (Enum.TryParse(choice, out vehicleType) && Enum.IsDefined(vehicleType))
                 {
                     break;
                 }
-                PrintError("Invalid option. Please enter 1, 2, or 3.");
+                localError = "Invalid option. Please enter 1, 2, or 3.";
             }
 
             string plate;
@@ -437,25 +423,31 @@ namespace FleetPulse
 
         private static (string? success, string? error) RemoveVehicleFlow()
         {
-            Console.WriteLine("Select Vehicle Type to remove:");
-            Console.WriteLine($"{(int)VehicleTypeOption.Truck}. Truck");
-            Console.WriteLine($"{(int)VehicleTypeOption.Van}. Van");
-            Console.WriteLine($"{(int)VehicleTypeOption.Bus}. Bus");
-            
+            string? localError = null;
             VehicleTypeOption vehicleType;
+            
             while (true)
             {
-                Console.Write("Choose an option: ");
-                string choice = (Console.ReadLine() ?? "").Trim();
+                Console.Clear();
+                MenuHeader();
                 
+                if (localError != null) PrintError(localError);
+
+                Console.WriteLine("Select Vehicle Type to remove:");
+                Console.WriteLine($"{(int)VehicleTypeOption.Truck}. Truck");
+                Console.WriteLine($"{(int)VehicleTypeOption.Van}. Van");
+                Console.WriteLine($"{(int)VehicleTypeOption.Bus}. Bus");
+                Console.Write("Choose an option: ");
+                
+                string choice = (Console.ReadLine() ?? "").Trim();
+
                 if (Enum.TryParse(choice, out vehicleType) && Enum.IsDefined(vehicleType))
                 {
                     break;
                 }
-                PrintError("Invalid option. Please enter 1, 2, or 3.");
+                localError = "Invalid option. Please enter 1, 2, or 3.";
             }
 
-            // Filter the fleet to only include the chosen vehicle type
             var typeMatchedVehicles = Dispatch.Fleet.Where(v => vehicleType switch
             {
                 VehicleTypeOption.Truck => v is Truck,
@@ -466,14 +458,13 @@ namespace FleetPulse
 
             if (typeMatchedVehicles.Count == 0)
             {
-                // Returns an error message back to the top of the menu
                 return (null, $"No {vehicleType}s found in the fleet.\n");
             }
 
             Console.WriteLine($"\n--- Available {vehicleType}s ---");
             foreach (var v in typeMatchedVehicles)
             {
-                v.DisplayInfo(); // This will print details including the Vehicle ID
+                v.DisplayInfo();
             }
             Console.WriteLine("------------------------\n");
 
@@ -491,12 +482,10 @@ namespace FleetPulse
             bool removed = Dispatch.RemoveVehicle(id);
             if (removed)
             {
-                // Returns a success message back to the top of the menu
                 return ($"Vehicle#{id} removed.\n", null);
             }
             else
             {
-                // Returns an error message back to the top of the menu
                 return (null, $"Vehicle#{id} not found.\n");
             }
         }
@@ -518,18 +507,35 @@ namespace FleetPulse
             string origin = PromptPlace("Select origin");
             string dest = PromptPlace("Select destination", origin);
 
-            Console.Write("Distance (km): ");
-            double dist = double.Parse(Console.ReadLine() ?? "100");
+            // FIX 3: Replaced hardcoded default with proper validation loop
+            double dist;
+            while (true)
+            {
+                Console.Write("Distance (km): ");
+                if (double.TryParse(Console.ReadLine(), out dist) && dist > 0)
+                {
+                    break;
+                }
+                PrintError("Invalid input. Please enter a valid, positive number for distance.");
+            }
+
             var priority = PromptPriority();
 
             var route = Dispatch.CreateRoute(origin, dest, dist, priority);
             return ($"Created {route}\n", null);
         }
 
+        // FIX 2: Clear screen on bad inputs to avoid infinite terminal scrolling
         private static string PromptPlace(string prompt, string? excludedPlace = null)
         {
+            string? localError = null;
             while (true)
             {
+                Console.Clear();
+                MenuHeader();
+
+                if (localError != null) PrintError(localError);
+
                 Console.WriteLine($"{prompt}:");
                 for (int i = 0; i < PresetPlaces.Length; i++)
                 {
@@ -539,14 +545,14 @@ namespace FleetPulse
                 Console.Write("Choose a place: ");
                 if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > PresetPlaces.Length)
                 {
-                    PrintError("Invalid option. Please choose a valid place number.");
+                    localError = "Invalid option. Please choose a valid place number.";
                     continue;
                 }
 
                 string selectedPlace = PresetPlaces[choice - 1];
                 if (excludedPlace != null && string.Equals(selectedPlace, excludedPlace, StringComparison.OrdinalIgnoreCase))
                 {
-                    PrintError("Destination cannot be the same as origin. Please choose a different place.");
+                    localError = "Destination cannot be the same as origin. Please choose a different place.";
                     continue;
                 }
 
@@ -556,8 +562,14 @@ namespace FleetPulse
 
         private static Priority PromptPriority()
         {
+            string? localError = null;
             while (true)
             {
+                Console.Clear();
+                MenuHeader();
+
+                if (localError != null) PrintError(localError);
+
                 Console.WriteLine("Select urgency:");
                 Console.WriteLine("1. Low");
                 Console.WriteLine("2. Medium");
@@ -567,7 +579,7 @@ namespace FleetPulse
 
                 if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > 4)
                 {
-                    PrintError("Invalid option. Please choose 1, 2, 3, or 4.");
+                    localError = "Invalid option. Please choose 1, 2, 3, or 4.";
                     continue;
                 }
 
@@ -653,9 +665,9 @@ namespace FleetPulse
         private static void ViewRoutes()
         {
             var routes = Dispatch.Routes;
-            if (routes.Count == 0) 
-            { 
-                Console.WriteLine("No routes yet."); 
+            if (routes.Count == 0)
+            {
+                Console.WriteLine("No routes yet.");
             }
             else
             {
@@ -701,7 +713,6 @@ namespace FleetPulse
                 return ("Background monitoring stopped.\n", null);
             }
             else
-
             {
                 Dispatch.StartMonitoring();
                 return ("Background monitoring started.\n", null);
