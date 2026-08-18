@@ -1,22 +1,31 @@
 {
   "Vehicles": [
     {
-      "VehicleType": "Van",
-      "VehicleId": 1001,
-      "LicensePlate": "VAN-991",
+      "VehicleType": "Truck",
+      "VehicleId": 1,
+      "LicensePlate": "TRK-479",
       "Mileage": 0,
       "FuelLevel": 100,
       "Status": "Idle",
-      "ExtraValue": 42
+      "ExtraValue": 10632
     },
     {
       "VehicleType": "Bus",
-      "VehicleId": 1002,
-      "LicensePlate": "BUS-860",
-      "Mileage": 190,
-      "FuelLevel": 25.5,
+      "VehicleId": 3,
+      "LicensePlate": "BUS-251",
+      "Mileage": 0,
+      "FuelLevel": 100,
       "Status": "Idle",
-      "ExtraValue": 35
+      "ExtraValue": 37
+    },
+    {
+      "VehicleType": "Truck",
+      "VehicleId": 4,
+      "LicensePlate": "0ty",
+      "Mileage": 10,
+      "FuelLevel": 89.2,
+      "Status": "Idle",
+      "ExtraValue": 3000
     }
   ],
   "Drivers": [
@@ -24,14 +33,20 @@
       "DriverId": 500,
       "Name": "Thabo Nkosi",
       "LicenseCode": "C1-EL",
-      "HoursDrivenToday": 5
+      "HoursDrivenToday": 0
     },
     {
       "DriverId": 501,
       "Name": "Amanda van Wyk",
       "LicenseCode": "EC1",
-      "HoursDrivenToday": 3.1666666666666665
+      "HoursDrivenToday": 0
+    },
+    {
+      "DriverId": 502,
+      "Name": "Ruan",
+      "LicenseCode": "A",
+      "HoursDrivenToday": 0.16666666666666666
     }
   ],
-  "SavedAt": "2026-08-17T18:11:15.6648427+00:00"
+  "SavedAt": "2026-08-18T14:21:03.9489482+00:00"
 }
